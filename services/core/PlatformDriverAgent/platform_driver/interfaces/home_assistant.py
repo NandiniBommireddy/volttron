@@ -237,7 +237,7 @@ class Interface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[register.point_name] = attribute
                 # handling light states
-                elif "light." or "input_boolean." in entity_id: # Checks for lights or input bools since they have the same states.
+                elif "light." in entity_id or "input_boolean." in entity_id: # Checks for lights or input bools since they have the same states.(scrape-bug-fixed)
                     if entity_point == "state":
                         state = entity_data.get("state", None)
                         # Converting light states to numbers.
@@ -398,10 +398,12 @@ class Interface(BasicRevert, BaseInterface):
             "entity_id": entity_id
         }
 
-        response = requests.post(url, headers=headers, json=payload)
+        _post_method(url, headers, payload, f"set {entity_id} to {state}")
 
-        # Optionally check for a successful response
-        if response.status_code == 200:
-            print(f"Successfully set {entity_id} to {state}")
-        else:
-            print(f"Failed to set {entity_id} to {state}: {response.text}")
+        # response = requests.post(url, headers=headers, json=payload)
+
+        # # Optionally check for a successful response
+        # if response.status_code == 200:
+        #     print(f"Successfully set {entity_id} to {state}")
+        # else:
+        #     print(f"Failed to set {entity_id} to {state}: {response.text}")
