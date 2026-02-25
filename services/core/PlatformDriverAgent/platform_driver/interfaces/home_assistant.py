@@ -102,12 +102,16 @@ class Interface(BasicRevert, BaseInterface):
         register = self.get_register_by_name(point_name)
 
         entity_data = self.get_entity_data(register.entity_id)
-        if register.point_name == "state":
-            result = entity_data.get("state", None)
-            return result
-        else:
-            value = entity_data.get("attributes", {}).get(f"{register.point_name}", 0)
-            return value
+        if register.entity_point == "state":
+            if "switch." in register.entity_id:
+                if state == "on":
+                    return 1
+                if state == "off":
+                    return 0
+            return state
+
+        value = entity_data.get("attributes", {}).get(f"{register.entity_point}", 0)
+        return value
 
     def _set_point(self, point_name, value):
         register = self.get_register_by_name(point_name)
