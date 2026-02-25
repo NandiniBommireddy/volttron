@@ -178,9 +178,22 @@ class Interface(BasicRevert, BaseInterface):
                 error_msg = f"Currently set_point is supported only for thermostats state and temperature {register.entity_id}"
                 _log.error(error_msg)
                 raise ValueError(error_msg)
+
+        elif "switch." in register.entity_id:
+            if entity_point != "state":
+                error_msg = f"Switch entities only support entity_point 'state', got {entity_point}"
+                _log.error(error_msg)
+                raise ValueError(error_msg)
+            if not (isinstance(register.value, int) and register.value in [0, 1]):
+                raise ValueError("State value for switch should be 0 or 1")
+            if register.value == 1:
+                self.turn_on_switch(register.entity_id)
+            else:
+                self.turn_off_switch(register.entity_id)
+
         else:
             error_msg = f"Unsupported entity_id: {register.entity_id}. " \
-                        f"Currently set_point is supported only for thermostats and lights"
+                        f"Currently set_point is supported only for thermostats, lights, input_booleans, and switches"
             _log.error(error_msg)
             raise ValueError(error_msg)
         return register.value
@@ -251,7 +264,24 @@ class Interface(BasicRevert, BaseInterface):
                         attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
                         register.value = attribute
                         result[register.point_name] = attribute
-                else:  # handling all devices that are not thermostats or light states
+                # handling switch states (on/off -> 1/0)
+                elif "switch." in entity_id:
+                    if entity_point == "state":
+                        state = entity_data.get("state", None)
+                        if state == "on":
+                            register.value = 1
+                            result[register.point_name] = 1
+                        elif state == "off":
+                            register.value = 0
+                            result[register.point_name] = 0
+                        else:
+                            register.value = 0
+                            result[register.point_name] = 0
+                    else:
+                        attribute = entity_data.get("attributes", {}).get(entity_point, 0)
+                        register.value = attribute
+                        result[register.point_name] = attribute
+                else:  # handling all devices that are not thermostats, lights, input_boolean, or switch
                     if entity_point == "state":
 
                         state = entity_data.get("state", None)
@@ -326,6 +356,24 @@ class Interface(BasicRevert, BaseInterface):
             "entity_id": f"{entity_id}"
         }
         _post_method(url, headers, payload, f"turn on {entity_id}")
+
+    def turn_on_switch(self, entity_id):
+        url = f"http://{self.ip_address}:{self.port}/api/services/switch/turn_on"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {"entity_id": entity_id}
+        _post_method(url, headers, payload, f"turn on {entity_id}")
+
+    def turn_off_switch(self, entity_id):
+        url = f"http://{self.ip_address}:{self.port}/api/services/switch/turn_off"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {"entity_id": entity_id}
+        _post_method(url, headers, payload, f"turn off {entity_id}")
 
     def change_thermostat_mode(self, entity_id, mode):
         # Check if enttiy_id startswith climate.

@@ -4,7 +4,8 @@ Home Assistant Driver
 =====================
 
 The Home Assistant driver enables VOLTTRON to read any data point from any Home Assistant controlled device.
-Currently control(write access) is supported only for lights(state and brightness) and thermostats(state and temperature).
+Currently control (write access) is supported for lights (state and brightness), thermostats (state and temperature),
+input_booleans (state), and switches (state).
 
 The following diagram shows interaction between platform driver agent and home assistant driver.
 
@@ -62,9 +63,9 @@ Registry Configuration
 
 Registry file can contain one single device and its attributes or a logical group of devices and its
 attributes. Each entry should include the full entity id of the device, including but not limited to home assistant provided prefix
-such as "light.",  "climate." etc. The driver uses these prefixes to convert states into integers.
-Like mentioned before, the driver can only control lights and thermostats but can get data from all devices
-controlled by home assistant
+such as "light.", "climate.", "switch.", "input_boolean." etc. The driver uses these prefixes to convert states into integers.
+The driver can control lights, thermostats, input_booleans, and switches, and can read data from all devices
+controlled by Home Assistant.
 
 Each entry in a registry file should also have a 'Entity Point' and a unique value for 'Volttron Point Name'. The 'Entity ID' maps to the device instance, the 'Entity Point' extracts the attribute or state, and 'Volttron Point Name' determines the name of that point as it appears in VOLTTRON.
 
@@ -158,6 +159,27 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
        }
    ]
 
+Example Switch Registry
+**********************
+
+For switches (smart plugs, relays, etc.), the state is converted to integers: 0 = off, 1 = on. Use ``entity_point``
+``"state"`` and a writable registry entry so that ``set_point`` can turn the switch on or off.
+
+.. code-block:: json
+
+   [
+       {
+           "Entity ID": "switch.living_room",
+           "Entity Point": "state",
+           "Volttron Point Name": "switch_state",
+           "Units": "On / Off",
+           "Units Details": "0: off, 1: on",
+           "Writable": true,
+           "Starting Value": 0,
+           "Type": "int",
+           "Notes": "Smart plug or switch"
+       }
+   ]
 
 
 Transfer the registers files and the config files into the VOLTTRON config store using the commands below:
