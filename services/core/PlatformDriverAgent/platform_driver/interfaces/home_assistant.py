@@ -103,6 +103,7 @@ class Interface(BasicRevert, BaseInterface):
 
         entity_data = self.get_entity_data(register.entity_id)
         if register.entity_point == "state":
+            state = entity_data.get("state", None)
             if "switch." in register.entity_id:
                 if state == "on":
                     return 1
