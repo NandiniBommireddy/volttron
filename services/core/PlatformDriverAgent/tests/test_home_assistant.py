@@ -90,17 +90,23 @@ def config_store(volttron_instance, platform_driver):
     volttron_instance.add_capabilities(volttron_instance.dynamic_agent.core.publickey, capabilities)
 
     registry_config = "homeassistant_test.json"
-    registry_obj = [{
-        "Entity ID": "input_boolean.volttrontest",
-        "Entity Point": "state",
-        "Volttron Point Name": "bool_state",
-        "Units": "On / Off",
-        "Units Details": "off: 0, on: 1",
-        "Writable": True,
-        "Starting Value": 3,
-        "Type": "int",
-        "Notes": "lights hallway"
-    }]
+    registry_obj = [
+        {
+            "Entity ID": "input_boolean.volttrontest",
+            "Entity Point": "state",
+            "Volttron Point Name": "bool_state",
+            "Units": "On / Off",
+            "Units Details": "off: 0, on: 1",
+            "Writable": True,
+            "Starting Value": 3,
+            "Type": "int",
+            "Notes": "lights hallway"
+        },
+        # Example switch entry (use a real switch entity_id in your HA instance):
+        # {"Entity ID": "switch.living_room", "Entity Point": "state", "Volttron Point Name": "switch_state",
+        #  "Units": "On / Off", "Units Details": "0: off, 1: on", "Writable": true, "Starting Value": 0,
+        #  "Type": "int", "Notes": "Smart plug or switch"}
+    ]
 
     volttron_instance.dynamic_agent.vip.rpc.call(CONFIGURATION_STORE,
                                                  "manage_store",
