@@ -35,15 +35,17 @@ from volttron.platform import get_services_core
 from volttron.platform.agent import utils
 from volttron.platform.keystore import KeyStore
 from volttrontesting.utils.platformwrapper import PlatformWrapper
+from unittest.mock import patch, MagicMock
+from platform_driver.interfaces.home_assistant import Interface
 
 utils.setup_logging()
 logger = logging.getLogger(__name__)
 
 # To run these tests, create a helper toggle named volttrontest in your Home Assistant instance.
 # This can be done by going to Settings > Devices & services > Helpers > Create Helper > Toggle
-HOMEASSISTANT_TEST_IP = ""
+HOMEASSISTANT_TEST_IP = "127.0.0.1"
 ACCESS_TOKEN = ""
-PORT = ""
+PORT = "8123"
 
 skip_msg = "Some configuration variables are not set. Check HOMEASSISTANT_TEST_IP, ACCESS_TOKEN, and PORT"
 
@@ -159,3 +161,144 @@ def platform_driver(volttron_instance):
     volttron_instance.stop_agent(platform_uuid)
     if not volttron_instance.debug_mode:
         volttron_instance.remove_agent(platform_uuid)
+
+@patch("platform_driver.interfaces.homeassistant.requests.get")
+def test_scrape_all_input_boolean(mock_get):
+    """Test that input_boolean state is converted to 1/0 correctly."""
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "state": "on",
+        "attributes": {}
+    }
+
+    mock_get.return_value = mock_response
+
+    interface = Interface()
+
+    registry = [
+        {
+            "Entity ID": "input_boolean.volttrontest",
+            "Entity Point": "state",
+            "Volttron Point Name": "bool_state",
+            "Units": "On / Off",
+            "Writable": True,
+            "Starting Value": 0,
+            "Type": "int",
+        }
+    ]
+
+    interface.configure(
+        {
+            "ip_address": "127.0.0.1",
+            "access_token": "fake",
+            "port": "8123",
+        },
+        registry
+    )
+
+    result = interface._scrape_all()
+
+    assert result["bool_state"] == 1
+
+@patch("platform_driver.interfaces.homeassistant.requests.get")
+def test_get_point_switch(mock_get):
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "state": "off",
+        "attributes": {}
+    }
+
+    mock_get.return_value = mock_response
+
+    interface = Interface()
+
+    registry = [
+        {
+            "Entity ID": "switch.test_switch",
+            "Entity Point": "state",
+            "Volttron Point Name": "switch_state",
+            "Units": "On / Off",
+            "Writable": True,
+            "Starting Value": 0,
+            "Type": "int",
+        }
+    ]
+
+    interface.configure(
+        {
+            "ip_address": "127.0.0.1",
+            "access_token": "fake",
+            "port": "8123",
+        },
+        registry
+    )
+
+    value = interface.get_point("switch_state")
+
+    assert value == 0
+
+@patch("platform_driver.interfaces.homeassistant.requests.post")
+def test_set_point_switch_on(mock_post):
+
+    mock_post.return_value.status_code = 200
+
+    interface = Interface()
+
+    registry = [
+        {
+            "Entity ID": "switch.test_switch",
+            "Entity Point": "state",
+            "Volttron Point Name": "switch_state",
+            "Units": "On / Off",
+            "Writable": True,
+            "Starting Value": 0,
+            "Type": "int",
+        }
+    ]
+
+    interface.configure(
+        {
+            "ip_address": "127.0.0.1",
+            "access_token": "fake",
+            "port": "8123",
+        },
+        registry
+    )
+
+    value = interface._set_point("switch_state", 1)
+
+    assert value == 1
+    assert mock_post.called
+
+def test_set_point_invalid_value():
+
+    interface = Interface()
+
+    registry = [
+        {
+            "Entity ID": "switch.test_switch",
+            "Entity Point": "state",
+            "Volttron Point Name": "switch_state",
+            "Units": "On / Off",
+            "Writable": True,
+            "Starting Value": 0,
+            "Type": "int",
+        }
+    ]
+
+    interface.configure(
+        {
+            "ip_address": "127.0.0.1",
+            "access_token": "fake",
+            "port": "8123",
+        },
+        registry
+    )
+
+    with pytest.raises(ValueError):
+        interface._set_point("switch_state", 5)
+
