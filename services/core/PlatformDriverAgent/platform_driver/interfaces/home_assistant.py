@@ -109,6 +109,11 @@ class Interface(BasicRevert, BaseInterface):
                     return 1
                 if state == "off":
                     return 0
+            if "lock." in register.entity_id:
+                if state == "locked":
+                    return 1
+                if state == "unlocked":
+                    return 0
             return state
 
         value = entity_data.get("attributes", {}).get(f"{register.entity_point}", 0)
@@ -196,9 +201,21 @@ class Interface(BasicRevert, BaseInterface):
             else:
                 self.turn_off_switch(register.entity_id)
 
+        elif "lock." in register.entity_id:
+            if entity_point != "state":
+                error_msg = f"Lock entities only support entity_point 'state', got {entity_point}"
+                _log.error(error_msg)
+                raise ValueError(error_msg)
+            if not (isinstance(register.value, int) and register.value in [0, 1]):
+                raise ValueError("State value for lock should be 0 or 1")
+            if register.value == 1:
+                self.lock_door(register.entity_id)
+            else:
+                self.unlock_door(register.entity_id)
+
         else:
             error_msg = f"Unsupported entity_id: {register.entity_id}. " \
-                        f"Currently set_point is supported only for thermostats, lights, input_booleans, and switches"
+                        f"Currently set_point is supported only for thermostats, lights, input_booleans, switches, and locks"
             _log.error(error_msg)
             raise ValueError(error_msg)
         return register.value
@@ -280,6 +297,20 @@ class Interface(BasicRevert, BaseInterface):
                             register.value = 0
                             result[register.point_name] = 0
                         else:
+                            register.value = 0
+                            result[register.point_name] = 0
+                    else:
+                        attribute = entity_data.get("attributes", {}).get(entity_point, 0)
+                        register.value = attribute
+                        result[register.point_name] = attribute
+                # handling lock states (locked/unlocked -> 1/0)
+                elif "lock." in entity_id:
+                    if entity_point == "state":
+                        state = entity_data.get("state", None)
+                        if state == "locked":
+                            register.value = 1
+                            result[register.point_name] = 1
+                        elif state == "unlocked":
                             register.value = 0
                             result[register.point_name] = 0
                     else:
@@ -379,6 +410,24 @@ class Interface(BasicRevert, BaseInterface):
         }
         payload = {"entity_id": entity_id}
         _post_method(url, headers, payload, f"turn off {entity_id}")
+
+    def lock_door(self, entity_id):
+        url = f"http://{self.ip_address}:{self.port}/api/services/lock/lock"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {"entity_id": entity_id}
+        _post_method(url, headers, payload, f"lock {entity_id}")
+
+    def unlock_door(self, entity_id):
+        url = f"http://{self.ip_address}:{self.port}/api/services/lock/unlock"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {"entity_id": entity_id}
+        _post_method(url, headers, payload, f"unlock {entity_id}")
 
     def change_thermostat_mode(self, entity_id, mode):
         # Check if enttiy_id startswith climate.
