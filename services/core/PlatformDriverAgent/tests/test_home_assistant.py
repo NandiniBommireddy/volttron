@@ -302,3 +302,4 @@ def test_set_point_invalid_value():
     with pytest.raises(ValueError):
         interface._set_point("switch_state", 5)
 
+
