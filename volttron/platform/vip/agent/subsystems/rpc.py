@@ -288,6 +288,9 @@ class RPC(SubsystemBase):
         """
 
         def checked_method(*args, **kwargs):
+            if not hasattr(self._owner.vip, "auth"):
+                return method(*args, **kwargs)
+
             user = str(self.context.vip_message.user)
             if self._message_bus == "rmq":
                 # remove platform instance name. rmq user names are of the format <instance name>.<user>

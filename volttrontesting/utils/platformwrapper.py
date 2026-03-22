@@ -485,6 +485,13 @@ class PlatformWrapper:
             self.logit('Using vip-address {address}'.format(
                 address=self.vip_address))
             address = self.vip_address
+
+        # The generic helper agent used by tests does not need the config store
+        # subsystem, and enabling it can trigger background initialization
+        # paths that assume auth-specific subsystems exist.
+        if 'enable_store' not in kwargs:
+            kwargs['enable_store'] = False
+
         if self.auth_enabled:
             if publickey is None:
                 self.logit(
@@ -498,9 +505,6 @@ class PlatformWrapper:
             self.logit("BUILD agent VOLTTRON HOME: {}".format(self.volttron_home))
             if self.bind_web_address:
                 kwargs['enable_web'] = True
-
-            if 'enable_store' not in kwargs:
-                kwargs['enable_store'] = False
 
             if capabilities is None:
                 capabilities = dict(edit_config_store=dict(identity=identity))
