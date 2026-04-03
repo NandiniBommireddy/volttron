@@ -232,7 +232,8 @@ class Interface(BasicRevert, BaseInterface):
 
         else:
             error_msg = f"Unsupported entity_id: {register.entity_id}. " \
-                        f"Currently set_point is supported only for thermostats, lights, input_booleans, switches, and locks"
+                        f"Currently set_point is supported only for thermostats, lights, input_booleans, "
+                        f"switches, fans, and locks"
             _log.error(error_msg)
             raise ValueError(error_msg)
         return register.value
@@ -288,8 +289,8 @@ class Interface(BasicRevert, BaseInterface):
                         attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
                         register.value = attribute
                         result[register.point_name] = attribute
-                # handling light states
-                elif "light." in entity_id or "input_boolean." in entity_id: # Checks for lights or input bools since they have the same states.(scrape-bug-fixed)
+                # handling light states and input_boolean (same on/off semantics)
+                elif "light." in entity_id or "input_boolean." in entity_id:
                     if entity_point == "state":
                         state = entity_data.get("state", None)
                         # Converting light states to numbers.
@@ -320,7 +321,7 @@ class Interface(BasicRevert, BaseInterface):
                         attribute = entity_data.get("attributes", {}).get(entity_point, 0)
                         register.value = attribute
                         result[register.point_name] = attribute
-                # handling fan states (on/off -> 1/0)       
+                # handling fan states (on/off -> 1/0)
                 elif "fan." in entity_id:
                     if entity_point == "state":
                         state = entity_data.get("state", None)
@@ -351,7 +352,7 @@ class Interface(BasicRevert, BaseInterface):
                         attribute = entity_data.get("attributes", {}).get(entity_point, 0)
                         register.value = attribute
                         result[register.point_name] = attribute
-                else:  # handling all devices that are not thermostats, lights, input_boolean, or switch
+                else:  # handling all devices that are not thermostats, lights, input_boolean, switch, fan, or lock
                     if entity_point == "state":
 
                         state = entity_data.get("state", None)
@@ -480,7 +481,6 @@ class Interface(BasicRevert, BaseInterface):
         }
         payload = {"entity_id": entity_id}
         _post_method(url, headers, payload, f"unlock {entity_id}")
-
     def change_thermostat_mode(self, entity_id, mode):
         # Check if enttiy_id startswith climate.
         if not entity_id.startswith("climate."):
