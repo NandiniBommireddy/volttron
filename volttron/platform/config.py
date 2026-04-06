@@ -341,6 +341,13 @@ class ArgumentParser(_argparse.ArgumentParser):
 
         This may include reading options from configuration files.
         '''
+        def _normalize_option_tuple(option_tuple):
+            if isinstance(option_tuple, list):
+                if not option_tuple:
+                    return None
+                option_tuple = option_tuple[0]
+            return option_tuple
+
         config_args = []
         cli_args = []
         if not arg_strings:
@@ -368,16 +375,16 @@ class ArgumentParser(_argparse.ArgumentParser):
                 # All remaining arguments are considered positional
                 cli_args.append(arg_string)
                 break
-            option_tuple = self._parse_optional(arg_string)
+            option_tuple = _normalize_option_tuple(self._parse_optional(arg_string))
             if option_tuple is None or option_tuple[0] is None:
                 # This argument is positional; skip further processing
                 cli_args.append(arg_string)
                 continue
-            # Handle Python 3.12+ compatibility where _parse_optional may return more than 3 values
-            if _sys.version_info.minor >= 12:
+            # Handle newer Python argparse internals where _parse_optional may
+            # return a 4-tuple (action, option_string, separator, explicit_arg).
+            if len(option_tuple) >= 4:
                 action, option_string, sep, explicit_arg = option_tuple
             else:
-            # Fallback for older Python versions
                 action, option_string, explicit_arg = option_tuple
             if explicit_arg is not None:
                 args = [explicit_arg]
@@ -395,7 +402,7 @@ class ArgumentParser(_argparse.ArgumentParser):
                 for n, arg in enumerate(arg_strings[i + 1:]):
                     if arg == '--' or arg in subcommands:
                         break
-                    option_tuple = self._parse_optional(arg)
+                    option_tuple = _normalize_option_tuple(self._parse_optional(arg))
                     if option_tuple is not None and option_tuple[
                         0] is not None:
                         break
