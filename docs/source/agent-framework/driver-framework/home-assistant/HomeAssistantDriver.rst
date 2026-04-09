@@ -5,7 +5,7 @@ Home Assistant Driver
 
 The Home Assistant driver enables VOLTTRON to read any data point from any Home Assistant controlled device.
 Currently control (write access) is supported for lights (state and brightness), thermostats (state and temperature),
-input_booleans (state), and switches (state).
+input_booleans (state), switches (state), fans (state), and locks (state).
 
 The following diagram shows interaction between platform driver agent and home assistant driver.
 
@@ -63,7 +63,7 @@ Registry Configuration
 
 Registry file can contain one single device and its attributes or a logical group of devices and its
 attributes. Each entry should include the full entity id of the device, including but not limited to home assistant provided prefix
-such as "light.", "climate.", "switch.", "input_boolean." etc. The driver uses these prefixes to convert states into integers.
+such as "light.", "climate.", "switch.", "input_boolean.", "fan.", and "lock.", "fan.", and "lock.". The driver uses these prefixes to convert states into integers.
 The driver can control lights, thermostats, input_booleans, and switches, and can read data from all devices
 controlled by Home Assistant.
 
@@ -181,6 +181,69 @@ For switches (smart plugs, relays, etc.), the state is converted to integers: 0 
        }
    ]
 
+Example Fan Registry
+********************
+
+For fans, the state is converted to integers: 0 = off, 1 = on. Use ``"state"`` as the entity point for writable fan control.
+
+.. code-block:: json
+
+   [
+       {
+           "Entity ID": "fan.living_room",
+           "Entity Point": "state",
+           "Volttron Point Name": "fan_state",
+           "Units": "On / Off",
+           "Units Details": "0: off, 1: on",
+           "Writable": true,
+           "Starting Value": 0,
+           "Type": "int",
+           "Notes": "Ceiling fan or HVAC fan control"
+       }
+   ]
+
+Example Lock Registry
+*********************
+
+For locks, the state is converted to integers: 0 = unlocked, 1 = locked. Use ``"state"`` as the entity point for write access.
+
+.. code-block:: json
+
+   [
+       {
+           "Entity ID": "lock.front_door",
+           "Entity Point": "state",
+           "Volttron Point Name": "front_door_lock",
+           "Units": "Locked / Unlocked",
+           "Units Details": "0: unlocked, 1: locked",
+           "Writable": true,
+           "Starting Value": 1,
+           "Type": "int",
+           "Notes": "Door lock control"
+       }
+   ]
+
+Supported State Mappings
+************************
+
+For writable ``state`` points, the Home Assistant driver uses the following mappings:
+
++------------------+------------------------------+
+| Entity prefix    | VOLTTRON value mapping       |
++==================+==============================+
+| ``light.``       | 0 = off, 1 = on              |
++------------------+------------------------------+
+| ``input_boolean.``| 0 = off, 1 = on             |
++------------------+------------------------------+
+| ``switch.``      | 0 = off, 1 = on              |
++------------------+------------------------------+
+| ``fan.``         | 0 = off, 1 = on              |
++------------------+------------------------------+
+| ``lock.``        | 0 = unlocked, 1 = locked     |
++------------------+------------------------------+
+| ``climate.``     | 0 = off, 2 = heat, 3 = cool, |
+|                  | 4 = auto                     |
++------------------+------------------------------+
 
 Transfer the registers files and the config files into the VOLTTRON config store using the commands below:
 
@@ -200,9 +263,13 @@ Upon completion, initiate the platform driver. Utilize the listener agent to ver
 
 Running Tests
 +++++++++++++++++++++++
-To run tests on the VOLTTRON home assistant driver you need to create a helper in your home assistant instance. This can be done by going to **Settings > Devices & services > Helpers > Create Helper > Toggle**. Name this new toggle **volttrontest**. After that run the pytest from the root of your VOLTTRON file.
+The repository includes unit and integration coverage for Home Assistant driver support.
 
-.. code-block:: bash
-    pytest volttron/services/core/PlatformDriverAgent/tests/test_home_assistant.py
+Current test files include:
 
-If everything works, you will see 6 passed tests.
+- ``test_home_assistant.py``
+- ``test_home_assistant_switch_integration.py``
+- ``test_home_assistant_fan_integration.py``
+- ``test_home_assistant_lock_integration.py``
+
+
